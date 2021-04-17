@@ -1,18 +1,30 @@
 from .video import VideoObject
 from .videochunk import VideoChunkObject
+from subprocess import Popen, PIPE
+import json
 
 class VideoPreProcessor():
     def __init__(self):
         super().__init__()
 
-    def convert_video_format(self, video, from_format, to_format, fps):
+    def standardize_video_format(self, video, from_format, to_format, fps):
         # TODO: AVI conversion here
-        # Use something similar to: ffmpeg -loglevel error -y -i ./test_video.avi -crf 0 -pix_fmt yuv420p ./test_video2.avi
-        pass
+        # Use something similar to: 
+        cmd = ['ffmpeg', '-loglevel', 'error', '-y', '-i', 'pipe:0', '-crf', '0', '-pix_fmt', 'yuv420p', 'pipe:1']
+        p = Popen(cmd, stdin=PIPE, stdout=PIPE)
+        output_video = p.communicate(input=video)[0]
+        return output_video
+        
+
+    def get_video_metadata(self, video):
+        cmd = ['ffprobe', '-loglevel', 'panic','-select_streams', 'v:0', '-show_streams', '-print_format', 'json', 'pipe:0']
+        p = Popen(cmd, stdin=PIPE, stdout=PIPE)
+        output = p.communicate(input=video)[0]
+        props = json.loads(output)
+        return props['streams'][0]
     
-    def process_video(self, video, metadata):
-        if metadata['format'] != 'avi':
-            self.convert_video_format(video, metadata['format'], 'avi')
+    def process_video(self, video):
+        metadata = self.get_video_metadata(video)
                 
         frames = video.split(bytes.fromhex('30306463'))
         iframe = bytes.fromhex('0001B0')
