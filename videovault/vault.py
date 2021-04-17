@@ -15,9 +15,11 @@ class VideoVault():
             print("Storage driver not recognized")
     
 
-    def store_video(self, video_id, metadata, video):
-        videoObj = self.preprocessor.process_video(video, metadata)
-        iden = self.storage.store_video(video_id, metadata, videoObj)
+    def store_video(self, video_id, video):
+        metadata = self.preprocessor.get_video_metadata(video)
+        std_video = self.preprocessor.standardize_video_format(video)
+        video_obj = self.preprocessor.split_chunks_video(std_video)
+        iden = self.storage.store_video(video_id, metadata, video_obj)
         return iden
     
     def get_video(self, video_id):
@@ -25,6 +27,9 @@ class VideoVault():
             'video': self.storage.get_video(video_id),
             'metadata': self.storage.get_video_metadata(video_id)
         }
+    
+    def get_video_frame(self, video_id, frame):
+        pass
     
 
  
