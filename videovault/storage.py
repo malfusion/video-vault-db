@@ -60,7 +60,7 @@ class RedisStorage(VideoStorage):
         d = {}
         for chunk in video.get_chunks():
             d[chunk.get_bytes()] = chunk.get_start_frame()
-        self.redis.zremrangebyscore('video_chunk::'+str(video_id), float('-inf'), float('inf'))
+        self.redis.zremrangebyscore('video_chunk::'+str(video_id), '-inf', '+inf')
         self.redis.zadd('video_chunk::'+str(video_id), d)
         self.redis.set('video_metadata::'+str(video_id), json.dumps(metadata))
         return video_id
@@ -72,7 +72,7 @@ class RedisStorage(VideoStorage):
         return json.loads(self.redis.get('video_metadata::'+str(video_id)))
     
     def get_chunk_with_frame(self, video_id, framenum):
-        res = self.redis.zrevrangebyscore('video_chunk::'+str(video_id), framenum, float('-inf'), start=0, num=1, withscores=True)
+        res = self.redis.zrevrangebyscore('video_chunk::'+str(video_id), int(framenum), '-inf', start=0, num=1, withscores=True)
         if not res:
             return None
         return res[0][0], int(res[0][1])

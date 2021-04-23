@@ -11,10 +11,6 @@ class VideoProcessor():
 
 
     def standardize_video_format(self, video, input_format):
-        # Use something similar to:
-        # cmd = ['ffmpeg', '-i', 'pipe:0', '-crf', '0', '-qscale', '0', '-pix_fmt', 'yuv420p',  '-r', '25', '-f', 'avi', 'pipe:1']
-        # p = Popen(cmd, stdin=PIPE, stdout=PIPE)
-        # output_video, stderr = p.communicate(input=video)
         with tempfile.NamedTemporaryFile() as tmp:
             tmp.write(video)
             cmd = ['ffmpeg', '-i', os.path.realpath(tmp.name), '-crf', '0', '-qscale', '0', '-pix_fmt', 'yuv420p',  '-r', '25', '-f', 'avi', 'pipe:1']

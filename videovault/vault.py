@@ -1,6 +1,7 @@
 from .storage import InMemoryStorage, RedisStorage
 from .processor import VideoProcessor
 import joblib
+import threading
 
 class VideoVault():
     def __init__(self, config):
@@ -41,21 +42,27 @@ class VideoVault():
     def get_every_nth_video_frame(self, video_id, n):
         metadata = self.storage.get_video_metadata(video_id)
         frames = []
-        
-        # for framenum in range(1, int(metadata['nb_frames'])+1, n):
-        #     print("Processing Frame:", str(framenum))
-        #     chunk, startframe = self.storage.get_chunk_with_frame(video_id, framenum)
-        #     frame = self.processor.get_frame_from_video(chunk, framenum-startframe)
-        #     frames.append(frame)
+        for framenum in range(1, int(metadata['nb_frames'])+1, n):
+            print("Processing Frame:", str(framenum))
+            chunk, startframe = self.storage.get_chunk_with_frame(video_id, framenum)
+            frame = self.processor.get_frame_from_video(chunk, framenum-startframe)
+            frames.append(frame)
+        return frames
+    
+    def get_every_nth_video_frame_threaded(self, video_id, n):
+        metadata = self.storage.get_video_metadata(video_id)
 
-        frames = joblib.Parallel(n_jobs=10)(joblib.delayed(
-        getFrame)(framenum, video_id, self.processor) for framenum in range(1, int(metadata['nb_frames'])+1, n))
+        def getFrame(framenum, video_id, processor, storage):
+            chunk, startframe = storage.get_chunk_with_frame(video_id, framenum)
+            frame = processor.get_frame_from_video(chunk, framenum-startframe)
+            return frame
+        
+        parallelize = joblib.Parallel(n_jobs=10, backend='threading')
+        frames = parallelize(
+                    joblib.delayed(getFrame)(
+                        framenum, video_id, self.processor, self.storage
+                    ) for framenum in range(1, int(metadata['nb_frames'])+1, n)
+                )
         return frames
         
-
-def getFrame(framenum, video_id, processor):
-    chunk, startframe = RedisStorage().get_chunk_with_frame(video_id, framenum)
-    frame = processor.get_frame_from_video(chunk, framenum-startframe)
-    return frame
-
 
